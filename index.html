@@ -2,92 +2,166 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wave Runner</title>
+<title>Wave Dash</title>
 <style>
-  body { margin:0; background:black; overflow:hidden; }
-  canvas { display:block; }
-</style>
-</head>
-<body>
+body { margin:0; font-family:sans-serif; background:#111; color:white; overflow:hidden; }
 
-<canvas id="game"></canvas>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let player = { x: 80, y: canvas.height/2, size: 10 };
-let goingUp = false;
-
-let speed = 5;
-let gaps = [];
-let score = 0;
-let best = localStorage.getItem("best") || 0;
-
-function spawnGap() {
-  let gapY = Math.random() * (canvas.height - 150) + 50;
-  gaps.push({ x: canvas.width, gapY, gapHeight: 120 });
+.screen {
+  position:absolute;
+  width:100%;
+  height:100%;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
 }
 
-function update() {
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+.active { display:flex; }
 
-  player.y += goingUp ? -4 : 4;
+/* Buttons */
+.btn {
+  background:#2ecc71;
+  padding:15px 25px;
+  margin:10px;
+  border-radius:10px;
+  font-size:20px;
+}
 
-  ctx.fillStyle = "cyan";
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = "cyan";
-  ctx.fillRect(player.x, player.y, player.size, player.size);
-  ctx.shadowBlur = 0;
+/* Side buttons */
+.side-left { position:absolute; left:20px; top:50%; transform:translateY(-50%); }
+.side-right { position:absolute; right:20px; top:50%; transform:translateY(-50%); }
 
-  if (Math.random() < 0.02) spawnGap();
+/* Small UI */
+.bottom-left { position:absolute; bottom:10px; left:10px; font-size:12px; }
+.top-right { position:absolute; top:10px; right:10px; }
 
-  gaps.forEach(g => {
-    g.x -= speed;
+canvas { display:block; }
+</style>
+</head>
 
-    ctx.fillStyle = "red";
-    ctx.fillRect(g.x, 0, 30, g.gapY);
-    ctx.fillRect(g.x, g.gapY + g.gapHeight, 30, canvas.height);
+<body>
 
-    if (
-      player.x < g.x + 30 &&
-      player.x + player.size > g.x &&
-      (player.y < g.gapY || player.y > g.gapY + g.gapHeight)
-    ) {
-      if (score > best) {
-        best = score;
-        localStorage.setItem("best", best);
-      }
-      alert("Game Over\nScore: " + score + "\nBest: " + best);
-      location.reload();
-    }
-  });
+<!-- MAIN MENU -->
+<div id="menu" class="screen active">
+  <h1>Wave Dash</h1>
 
-  score++;
+  <div class="btn" onclick="startGame()">▶ PLAY</div>
 
-  ctx.fillStyle = "white";
-  ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 20, 30);
-  ctx.fillText("Best: " + best, 20, 60);
+  <div class="btn side-left" onclick="showScreen('icons')">🎨</div>
+  <div class="btn side-right" onclick="showScreen('more')">⚙</div>
+
+  <div class="btn top-right" onclick="dailyReward()">🎁</div>
+
+  <div class="bottom-left">
+    Support the original creator 👍
+  </div>
+</div>
+
+<!-- ICON MENU -->
+<div id="icons" class="screen">
+  <h2>Icons</h2>
+  <p>(30 icons placeholder)</p>
+  <div class="btn" onclick="showScreen('menu')">⬅ Back</div>
+</div>
+
+<!-- MORE MENU -->
+<div id="more" class="screen">
+  <h2>More</h2>
+  <div class="btn">🧱 Level Editor (soon)</div>
+  <div class="btn">🌐 Online Levels (soon)</div>
+  <div class="btn" onclick="showScreen('menu')">⬅ Back</div>
+</div>
+
+<!-- GAME -->
+<canvas id="game" class="screen"></canvas>
+
+<script>
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame(){
+  showScreen('game');
+  initGame();
+}
+
+function dailyReward(){
+  alert("🎁 You got 10 coins!");
+}
+
+/* ==== GAME ==== */
+let canvas = document.getElementById("game");
+let ctx = canvas.getContext("2d");
+
+function initGame(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  player = { x: 100, y: canvas.height/2, size: 12 };
+  goingUp = false;
+  gaps = [];
+  score = 0;
 
   requestAnimationFrame(update);
 }
 
-window.addEventListener("touchstart", () => goingUp = true);
-window.addEventListener("touchend", () => goingUp = false);
-window.addEventListener("keydown", e => {
-  if (e.code === "Space") goingUp = true;
-});
-window.addEventListener("keyup", e => {
-  if (e.code === "Space") goingUp = false;
-});
+let player, goingUp, gaps, score;
+const GAP = 160;
+const SPEED = 5;
 
-update();
+function spawn(){
+  let y = Math.random() * (canvas.height - GAP - 40) + 20;
+  gaps.push({ x: canvas.width, y });
+}
+
+function update(){
+  ctx.fillStyle = "black";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // wave movement (REAL style)
+  player.x += SPEED;
+  player.y += goingUp ? -SPEED : SPEED;
+
+  // draw wave (triangle icon)
+  ctx.fillStyle = "cyan";
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(player.x - 10, player.y + 5);
+  ctx.lineTo(player.x - 10, player.y - 5);
+  ctx.closePath();
+  ctx.fill();
+
+  if (gaps.length === 0 || canvas.width - gaps[gaps.length-1].x > 300){
+    spawn();
+  }
+
+  gaps.forEach(g=>{
+    g.x -= SPEED;
+
+    ctx.fillStyle="red";
+    ctx.fillRect(g.x,0,40,g.y);
+    ctx.fillRect(g.x,g.y+GAP,40,canvas.height);
+
+    if (
+      player.x < g.x + 40 &&
+      player.x > g.x &&
+      (player.y < g.y || player.y > g.y + GAP)
+    ){
+      alert("Game Over");
+      showScreen('menu');
+    }
+  });
+
+  requestAnimationFrame(update);
+}
+
+/* controls */
+window.addEventListener("touchstart", ()=> goingUp=true);
+window.addEventListener("touchend", ()=> goingUp=false);
+window.addEventListener("keydown", e=> { if(e.code==="Space") goingUp=true; });
+window.addEventListener("keyup", e=> { if(e.code==="Space") goingUp=false; });
+
 </script>
-
 </body>
 </html>
